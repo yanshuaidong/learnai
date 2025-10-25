@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELIZA 聊天机器人演示 - AI 发展历史</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .panel-header small {
+            display: block;
+            font-size: 14px;
+            font-weight: normal;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        /* 左侧聊天面板 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f5f5f5;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message .message-content {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .bot-message .message-content {
+            background: white;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .system-message {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            font-style: italic;
+            margin: 20px 0;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .quick-btn {
+            padding: 8px 15px;
+            background: #f0f0f0;
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #667eea;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #userInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendBtn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        #sendBtn:hover {
+            transform: scale(1.05);
+        }
+
+        #sendBtn:active {
+            transform: scale(0.95);
+        }
+
+        /* 右侧解析面板 */
+        .analysis-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .analysis-section {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .analysis-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .analysis-section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .step-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .step {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #764ba2;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            background: #764ba2;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 25px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .arrow {
+            text-align: center;
+            color: #764ba2;
+            font-size: 20px;
+            margin: -5px 0;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border: 2px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .info-box h4 {
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+        }
+
+        .comparison-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .panel {
+                min-height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧聊天面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                🤖 ELIZA 聊天机器人
+                <small>1966 年 MIT 开发的第一个聊天机器人</small>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="system-message">
+                        欢迎体验 ELIZA! 这是 AI 发展史上的第一个聊天机器人。<br>
+                        试试问它关于 JavaScript 的问题吧!
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <div class="quick-questions">
+                        <button class="quick-btn" onclick="quickAsk('JavaScript 的控制台输出语句是什么?')">
+                            JavaScript 控制台输出
+                        </button>
+                        <button class="quick-btn" onclick="quickAsk('console.log 是做什么的?')">
+                            console.log 用法
+                        </button>
+                        <button class="quick-btn" onclick="quickAsk('我想学习 JavaScript')">
+                            学习 JavaScript
+                        </button>
+                        <button class="quick-btn" onclick="quickAsk('I am tired')">
+                            心理咨询模式
+                        </button>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="userInput" placeholder="输入你的问题..." 
+                               onkeypress="if(event.key==='Enter') sendMessage()">
+                        <button id="sendBtn" onclick="sendMessage()">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧解析面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                🔍 工作原理解析
+                <small>实时显示 ELIZA 的处理过程</small>
+            </div>
+            <div class="analysis-container" id="analysisContainer">
+                <div class="info-box">
+                    <h4>💡 ELIZA 核心原理</h4>
+                    <p><strong>关键词匹配 + 模板回复</strong></p>
+                    <p>ELIZA 不会"理解"你的话，它只是:</p>
+                    <ul style="margin-left: 20px; line-height: 1.8;">
+                        <li>在你的输入中查找关键词</li>
+                        <li>根据关键词选择预设的回复模板</li>
+                        <li>简单替换人称代词</li>
+                    </ul>
+                </div>
+
+                <div class="analysis-section">
+                    <h3>📊 数据结构</h3>
+                    <div class="code-block">
+elizaKeywords = [
+  ["关键词", 优先级, [
+    ["匹配模式", [
+      "回复模板1",
+      "回复模板2"
+    ]]
+  ]]
+]
+
+// 示例: JavaScript 规则
+["console", 15, [
+  ["*", [
+    "console.log(\"Hello, world!\");"
+  ]]
+]]</div>
+                </div>
+
+                <div class="analysis-section">
+                    <h3>🔄 处理流程</h3>
+                    <div class="step-flow">
+                        <div class="step">
+                            <span class="step-number">1</span>
+                            <strong>文本预处理</strong>: 转小写、清理标点
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="step">
+                            <span class="step-number">2</span>
+                            <strong>关键词匹配</strong>: 按优先级扫描关键词
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="step">
+                            <span class="step-number">3</span>
+                            <strong>模式分解</strong>: 匹配具体的句子模式
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="step">
+                            <span class="step-number">4</span>
+                            <strong>选择回复</strong>: 从模板列表中选择
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="step">
+                            <span class="step-number">5</span>
+                            <strong>参数替换</strong>: 人称转换 (I→you)
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="step">
+                            <span class="step-number">6</span>
+                            <strong>后处理</strong>: 首字母大写、格式化
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analysis-section">
+                    <h3>📈 ELIZA vs 现代 AI</h3>
+                    <table class="comparison-table">
+                        <tr>
+                            <th>特性</th>
+                            <th>ELIZA (1966)</th>
+                            <th>ChatGPT (2023)</th>
+                        </tr>
+                        <tr>
+                            <td>工作原理</td>
+                            <td>关键词匹配</td>
+                            <td>深度学习</td>
+                        </tr>
+                        <tr>
+                            <td>语义理解</td>
+                            <td>❌ 无</td>
+                            <td>✅ 有</td>
+                        </tr>
+                        <tr>
+                            <td>上下文记忆</td>
+                            <td>❌ 极少</td>
+                            <td>✅ 长期</td>
+                        </tr>
+                        <tr>
+                            <td>回复方式</td>
+                            <td>固定模板</td>
+                            <td>动态生成</td>
+                        </tr>
+                        <tr>
+                            <td>代码量</td>
+                            <td>~1000 行</td>
+                            <td>数百万行</td>
+                        </tr>
+                        <tr>
+                            <td>参数量</td>
+                            <td>0</td>
+                            <td>1750 亿+</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ELIZA 核心实现 (简化版，但包含调试功能)
+        class ElizaBot {
+            constructor() {
+                this.keywords = [
+                    {
+                        key: "console",
+                        rank: 15,
+                        patterns: [
+                            {
+                                pattern: /.*/,
+                                responses: ["console.log(\"Hello, world!\");"]
+                            }
+                        ]
+                    },
+                    {
+                        key: "控制台",
+                        rank: 15,
+                        patterns: [
+                            {
+                                pattern: /.*/,
+                                responses: ["傻子程序console.log(\"Hello, world!\");"]
+                            }
+                        ]
+                    },
+                    {
+                        key: "output",
+                        rank: 12,
+                        patterns: [
+                            {
+                                pattern: /.*/,
+                                responses: ["console.log(\"Hello, world!\");"]
+                            }
+                        ]
+                    },
+                    {
+                        key: "输出",
+                        rank: 12,
+                        patterns: [
+                            {
+                                pattern: /.*/,
+                                responses: ["console.log(\"Hello, world!\");"]
+                            }
+                        ]
+                    },
+                    {
+                        key: "javascript",
+                        rank: 10,
+                        patterns: [
+                            {
+                                pattern: /.*/,
+                                responses: [
+                                    "console.log(\"Hello, world!\");",
+                                    "JavaScript is a powerful programming language.",
+                                    "What would you like to know about JavaScript?"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        key: "tired",
+                        rank: 5,
+                        patterns: [
+                            {
+                                pattern: /i am (.*)/i,
+                                responses: [
+                                    "Do you know anyone else who is $1?",
+                                    "Do you believe it is normal to be $1?",
+                                    "How long have you been $1?"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        key: "sorry",
+                        rank: 3,
+                        patterns: [
+                            {
+                                pattern: /.*/,
+                                responses: [
+                                    "Please don't apologize.",
+                                    "Apologies are not necessary.",
+                                    "It did not bother me. Please continue."
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        key: "hello",
+                        rank: 2,
+                        patterns: [
+                            {
+                                pattern: /.*/,
+                                responses: [
+                                    "How do you do. Please state your problem.",
+                                    "Hi. What seems to be your problem?"
+                                ]
+                            }
+                        ]
+                    }
+                ];
+
+                this.defaultResponses = [
+                    "I'm not sure I understand you fully.",
+                    "Please go on.",
+                    "What does that suggest to you?",
+                    "Tell me more about that.",
+                    "I see. How does that make you feel?"
+                ];
+
+                // 按 rank 排序
+                this.keywords.sort((a, b) => b.rank - a.rank);
+                
+                console.log("🤖 ELIZA 初始化完成");
+                console.log("📋 关键词列表 (按优先级排序):");
+                this.keywords.forEach((kw, idx) => {
+                    console.log(`  ${idx+1}. "${kw.key}" (优先级: ${kw.rank})`);
+                });
+            }
+
+            transform(text) {
+                const analysis = {
+                    original: text,
+                    preprocessed: "",
+                    matchedKeyword: null,
+                    selectedResponse: "",
+                    steps: []
+                };
+
+                // 调试信息：记录原始输入
+                console.log("\n🔍 ELIZA 网页版调试开始");
+                console.log("📝 原始输入:", text);
+                debugger; // 断点1：查看原始输入
+
+                // 1. 预处理
+                let processed = text.toLowerCase();
+                console.log("🔄 转换为小写:", processed);
+                
+                processed = processed.replace(/[^a-z0-9\s\u4e00-\u9fa5]/g, ' ');
+                processed = processed.replace(/\s+/g, ' ').trim();
+                console.log("🧹 清理后的文本:", processed);
+                
+                analysis.preprocessed = processed;
+                analysis.steps.push({
+                    step: "预处理",
+                    result: processed
+                });
+
+                // 2. 关键词匹配
+                console.log("\n🔍 开始关键词匹配...");
+                console.log("📋 关键词列表 (按优先级排序):");
+                this.keywords.forEach((kw, idx) => {
+                    console.log(`  ${idx+1}. "${kw.key}" (优先级: ${kw.rank})`);
+                });
+                
+                debugger; // 断点2：查看关键词匹配过程
+                
+                for (let keyword of this.keywords) {
+                    const found = processed.includes(keyword.key);
+                    console.log(`🔎 检查关键词 "${keyword.key}" (优先级: ${keyword.rank}): ${found ? '✅ 匹配!' : '❌ 不匹配'}`);
+                    
+                    if (found) {
+                        console.log(`🎯 找到匹配的关键词: "${keyword.key}"`);
+                        console.log(`⭐ 优先级: ${keyword.rank}`);
+                        console.log(`🔍 该关键词有 ${keyword.patterns.length} 个模式规则:`);
+                        
+                        keyword.patterns.forEach((pattern, idx) => {
+                            console.log(`  模式 ${idx+1}: ${pattern.pattern}`);
+                            console.log(`  回复模板: [${pattern.responses.join(', ')}]`);
+                        });
+                        
+                        debugger; // 断点3：找到匹配的关键词时
+                        
+                        analysis.matchedKeyword = keyword;
+                        analysis.steps.push({
+                            step: "关键词匹配",
+                            result: `找到关键词: "${keyword.key}" (优先级: ${keyword.rank})`
+                        });
+
+                        // 3. 模式匹配
+                        for (let patternObj of keyword.patterns) {
+                            const match = processed.match(patternObj.pattern);
+                            console.log(`🔎 测试模式: "${patternObj.pattern}" -> ${match ? '✅ 匹配' : '❌ 不匹配'}`);
+                            
+                            if (match) {
+                                console.log(`🎉 模式匹配成功!`);
+                                if (match.length > 1) {
+                                    console.log(`📋 捕获的参数:`, match.slice(1));
+                                }
+                                
+                                // 4. 选择回复
+                                const responseIndex = Math.floor(Math.random() * patternObj.responses.length);
+                                const response = patternObj.responses[responseIndex];
+                                
+                                console.log(`🎲 可用回复模板 ${patternObj.responses.length} 个:`);
+                                patternObj.responses.forEach((template, idx) => {
+                                    console.log(`  ${idx}: "${template}"`);
+                                });
+                                console.log(`🎯 选中模板 ${responseIndex}: "${response}"`);
+                                
+                                debugger; // 断点4：查看回复生成过程
+                                
+                                // 5. 参数替换
+                                let finalResponse = response;
+                                if (match[1]) {
+                                    console.log(`🔄 开始参数替换...`);
+                                    console.log(`📝 替换参数: "${match[1]}"`);
+                                    finalResponse = response.replace('$1', match[1]);
+                                    console.log(`✅ 参数替换完成: "${finalResponse}"`);
+                                }
+
+                                analysis.selectedResponse = finalResponse;
+                                analysis.steps.push({
+                                    step: "选择回复",
+                                    result: finalResponse
+                                });
+
+                                // 6. 首字母大写
+                                finalResponse = finalResponse.charAt(0).toUpperCase() + 
+                                              finalResponse.slice(1);
+                                
+                                console.log(`🎨 最终回复: "${finalResponse}"`);
+                                console.log("✅ 匹配成功，返回回复");
+                                console.log("🔚 ELIZA 网页版调试结束\n");
+                                
+                                return { response: finalResponse, analysis };
+                            }
+                        }
+                    }
+                }
+
+                // 默认回复
+                console.log("❌ 没有找到匹配的关键词，使用默认回复");
+                const defaultResponse = this.defaultResponses[
+                    Math.floor(Math.random() * this.defaultResponses.length)
+                ];
+                
+                console.log(`💬 默认回复: "${defaultResponse}"`);
+                
+                analysis.steps.push({
+                    step: "默认回复",
+                    result: "未找到匹配关键词，使用默认回复"
+                });
+
+                console.log("🔚 ELIZA 网页版调试结束\n");
+                return { response: defaultResponse, analysis };
+            }
+        }
+
+        const eliza = new ElizaBot();
+
+        function addMessage(text, isUser) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-label">${isUser ? '你' : 'ELIZA'}</div>
+                <div class="message-content">${text}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showAnalysis(analysis) {
+            const container = document.getElementById('analysisContainer');
+            
+            let html = `
+                <div class="info-box">
+                    <h4>💡 本次对话分析</h4>
+                    <p><strong>原始输入:</strong> ${analysis.original}</p>
+                </div>
+
+                <div class="analysis-section">
+                    <h3>🔍 处理步骤</h3>
+            `;
+
+            analysis.steps.forEach((step, index) => {
+                html += `
+                    <div class="step">
+                        <span class="step-number">${index + 1}</span>
+                        <strong>${step.step}</strong>: ${step.result}
+                    </div>
+                `;
+                if (index < analysis.steps.length - 1) {
+                    html += '<div class="arrow">↓</div>';
+                }
+            });
+
+            html += '</div>';
+
+            if (analysis.matchedKeyword) {
+                html += `
+                    <div class="analysis-section">
+                        <h3>🎯 匹配详情</h3>
+                        <p><strong>关键词:</strong> <span class="highlight">${analysis.matchedKeyword.key}</span></p>
+                        <p><strong>优先级 (rank):</strong> ${analysis.matchedKeyword.rank}</p>
+                        <p><strong>最终回复:</strong> ${analysis.selectedResponse}</p>
+                    </div>
+
+                    <div class="info-box">
+                        <h4>🧠 为什么选择这个回复?</h4>
+                        <p>1. ELIZA 在你的输入中发现了关键词 "<strong>${analysis.matchedKeyword.key}</strong>"</p>
+                        <p>2. 这个关键词的优先级是 <strong>${analysis.matchedKeyword.rank}</strong> (数字越大优先级越高)</p>
+                        <p>3. 从预设的回复模板中随机选择了一个</p>
+                        <p>4. <strong>注意:</strong> ELIZA 并不理解你的问题，只是简单的模式匹配!</p>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="info-box">
+                        <h4>❓ 为什么是这个回复?</h4>
+                        <p>ELIZA 在你的输入中没有找到任何已知的关键词，所以使用了通用的默认回复。</p>
+                        <p>这些默认回复设计得很巧妙，让对话可以继续下去。</p>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="analysis-section">
+                    <h3>💻 对应代码</h3>
+                    <div class="code-block">
+// 关键词定义
+{
+  key: "${analysis.matchedKeyword ? analysis.matchedKeyword.key : 'none'}",
+  rank: ${analysis.matchedKeyword ? analysis.matchedKeyword.rank : 0},
+  patterns: [
+    {
+      pattern: /匹配模式/,
+      responses: [
+        "${analysis.selectedResponse || '默认回复'}"
+      ]
+    }
+  ]
+}</div>
+                </div>
+
+                <div class="analysis-section">
+                    <h3>📈 ELIZA vs 现代 AI</h3>
+                    <table class="comparison-table">
+                        <tr>
+                            <th>特性</th>
+                            <th>ELIZA (1966)</th>
+                            <th>ChatGPT (2023)</th>
+                        </tr>
+                        <tr>
+                            <td>工作原理</td>
+                            <td>关键词匹配</td>
+                            <td>深度学习</td>
+                        </tr>
+                        <tr>
+                            <td>语义理解</td>
+                            <td>❌ 无</td>
+                            <td>✅ 有</td>
+                        </tr>
+                        <tr>
+                            <td>上下文记忆</td>
+                            <td>❌ 极少</td>
+                            <td>✅ 长期</td>
+                        </tr>
+                        <tr>
+                            <td>回复方式</td>
+                            <td>固定模板</td>
+                            <td>动态生成</td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+
+            // 显示用户消息
+            addMessage(text, true);
+            input.value = '';
+
+            // 获取 ELIZA 回复
+            setTimeout(() => {
+                console.log("🚀 开始处理用户输入:", text);
+                console.log("🔧 打开浏览器开发者工具 (F12) 查看详细调试信息!");
+                debugger; // 主调试断点：开始处理用户输入
+                
+                const result = eliza.transform(text);
+                addMessage(result.response, false);
+                showAnalysis(result.analysis);
+            }, 500);
+        }
+
+        function quickAsk(question) {
+            document.getElementById('userInput').value = question;
+            sendMessage();
+        }
+
+        // 初始化
+        window.onload = function() {
+            addMessage("Hello! I am ELIZA. How can I help you today?", false);
+        };
+    </script>
+</body>
+</html>
+
