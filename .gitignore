@@ -137,3 +137,6 @@ wandb/
 .cache/
 *.bak
 
+*.png
+*.jpg
+*.jpeg
